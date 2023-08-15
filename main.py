@@ -12,7 +12,11 @@ def isProject():
 
 def NewProject():
     project['name'] = "New Project"
+    project['frames'] = []
     reloadProperties()
+    
+def NewFrame():
+    project['frames'].append({'name': 'New Frame', 'events': []})
 
 
 def OpenProject():
@@ -40,6 +44,11 @@ def SaveProjectAs(path):
 
 def reloadProperties():
     dpg.set_value("properties_name", project['name'])
+    
+    #add tree nodes in workspace tree node
+    for frame in project['frames']:
+        dpg.add_tree_node(label=frame['name'], parent="Workspace Tree")
+
 dpg.create_context()
 
 with dpg.window(tag="Primary Window"):
@@ -52,6 +61,10 @@ with dpg.window(tag="Primary Window"):
             dpg.add_menu_item(label="Open", callback=OpenProject)
             dpg.add_menu_item(label="Save", callback=SaveProject)
             dpg.add_menu_item(label="Exit", callback=dpg.stop_dearpygui)
+            
+        with dpg.menu(label="Insert"):
+            dpg.add_menu_item(label="New Frame")
+            pass
             
     #workspace
     with dpg.window(label="Workspace", id="Workspace", width=800, height=500, no_close=True):
@@ -68,10 +81,7 @@ with dpg.window(tag="Primary Window"):
                 pass
             with dpg.tab(label="Event Editor"):
                 pass
-                
-                
-        pass
-            
+
     with dpg.window(label="Workspace Toolbar", id="Workspace Toolbar", width=200, height=400, no_close=True):
             with dpg.tree_node(label="", id="Workspace Tree"):
                 pass
