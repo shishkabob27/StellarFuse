@@ -1,119 +1,100 @@
-import dearpygui.dearpygui as dpg
-import json
+import pygame
 import os
 
-project = {'name': 'No Project Loaded'}
+global game
 
-def isProject():
-    if project['name'] == 'No Project Loaded':
-        return False
-    return True
+class Game:
+    Frame = None
     
+    def __init__(self):
+        pygame.init()
+        pygame.display.set_caption("APOLLO | BETA")
+        self.screen = pygame.display.set_mode((640, 360), pygame.RESIZABLE)
+        self.clock = pygame.time.Clock()
 
-def NewProject():
-    project['name'] = "New Project"
-    project['frames'] = []
-    reloadProperties()
+    def run(self):
+        running = True
+        while running:
+            self.clock.tick(60)
+            self.screen.fill("black")
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+            if Frame != None:
+                for entity in Frame.Entities:
+                    entity.frameUpdate()
+                    entity.draw(self.screen)
+
+            pygame.display.flip()
+
+        pygame.quit()
+
+class Frame:
+    Entities = []
     
-def NewFrame():
-    project['frames'].append({'name': 'New Frame', 'events': []})
-
-
-def OpenProject():
-     with dpg.file_dialog(label="Open", width=640, height=400, callback=lambda sender, data: LoadProject(dpg.get_value(sender))):
-        dpg.add_file_extension(".sfp", color=(255, 255, 0, 255))
-        dpg.add_file_extension(".*", color=(255, 255, 255, 255))
-        
-def LoadProject(path):
-    if path == "":
-        return
-    with open(path) as f:
-        project.update(json.load(f))
-        reloadProperties()
-        
-def SaveProject():
-    with dpg.file_dialog(label="Save", width=640, height=400, callback=lambda sender, data: SaveProjectAs(dpg.get_value(sender))):
-        dpg.add_file_extension(".sfp", color=(255, 255, 0, 255))
-        
-def SaveProjectAs(path):
-    if path == "":
-        return
-    with open(path, 'w') as f:
-        json.dump(project, f)
-        reloadProperties()
-
-def reloadProperties():
-    dpg.set_value("properties_name", project['name'])
+    def __init__(self):
+        pass
     
-    #add tree nodes in workspace tree node
-    for frame in project['frames']:
-        dpg.add_tree_node(label=frame['name'], parent="Workspace Tree")
+    def createEntity(self, entity):
+        self.Entities.append(entity)
+        
+    def destroyEntity(self, entity):
+        self.Entities.remove(entity)
 
-dpg.create_context()
+class GameFrame(Frame):
+    def __init__(self):
+        self.createEntity(Traveler())
+        pass
+        
 
-with dpg.window(tag="Primary Window"):
-    #menu bar
-    with dpg.menu_bar():
-        #file menu
-        with dpg.menu(label="File"):
-            #file menu items
-            dpg.add_menu_item(label="New", callback=NewProject)
-            dpg.add_menu_item(label="Open", callback=OpenProject)
-            dpg.add_menu_item(label="Save", callback=SaveProject)
-            dpg.add_menu_item(label="Exit", callback=dpg.stop_dearpygui)
-            
-        with dpg.menu(label="Insert"):
-            dpg.add_menu_item(label="New Frame")
-            pass
-            
-    #workspace
-    with dpg.window(label="Workspace", id="Workspace", width=800, height=500, no_close=True):
-        #tabs
-        with dpg.tab_bar():
-            #tab 1
-            with dpg.tab(label="Frame Editor"):
-                with dpg.plot(height=-1, width=-1):
-                    dpg.add_plot_legend()
-                    xaxis = dpg.add_plot_axis(dpg.mvXAxis, label="x")
-                    with dpg.plot_axis(dpg.mvYAxis, label="y axis"):
-                        dpg.fit_axis_data(dpg.top_container_stack())
-                    dpg.fit_axis_data(xaxis)
-                pass
-            with dpg.tab(label="Event Editor"):
-                pass
-
-    with dpg.window(label="Workspace Toolbar", id="Workspace Toolbar", width=200, height=400, no_close=True):
-            with dpg.tree_node(label="", id="Workspace Tree"):
-                pass
-            
-    with dpg.window(label="Properties", id="Properties", width=200, height=400, no_close=True):
-        dpg.add_text("Name")
-        dpg.add_input_text(label="##Name", id="properties_name", default_value=project['name'], callback=lambda sender, data: project.update({'name': dpg.get_value("properties_name")}))
+class Entity:
+    pos = pygame.Vector2(0, 0)
+    size = pygame.Vector2(32, 32)
+    direction = 0 #radians 0-360
     
-                
-        
-dpg.create_viewport(title='StellarFuse', width=1920, height=1080)
-dpg.setup_dearpygui()
-dpg.show_viewport()
-dpg.set_primary_window("Primary Window", True)
-
-while dpg.is_dearpygui_running():
-
-    if isProject():
-        dpg.set_viewport_title("StellarFuse - " + project['name'])
-        dpg.set_item_label("Workspace Tree", project['name'])
-        dpg.show_item("Workspace")
-        dpg.show_item("Workspace Toolbar")
-        dpg.show_item("Properties")
-    else:
-        #hide workspace toolbar
-        dpg.hide_item("Workspace")
-        dpg.hide_item("Workspace Toolbar")
-        dpg.hide_item("Properties")
-        dpg.set_viewport_title("StellarFuse")
-        
-        
-        
-    dpg.render_dearpygui_frame()
+    sprite = pygame.sprite.Sprite()
     
-dpg.destroy_context()
+    __texture = "assets/sprites/missing.png"
+    
+    def __init__(self):
+        self.sprite.__init__()
+        self.setTexture(self.__texture)
+        self.sprite.rect = pygame.Rect(self.pos, self.size)
+    
+    
+    def setTexture(self, texture):
+        #check if texture path exists
+        if texture != None and os.path.exists(texture):
+            self.__texture = pygame.image.load(texture)
+        else:
+            print(f"Texture {texture} does not exist")
+            self.__texture = pygame.image.load("assets/sprites/missing.png")
+        
+        self.sprite.image = self.__texture
+        self.sprite.image.convert()
+        
+
+    def draw(self, screen):
+        #draw sprite with openGL
+        screen.blit(self.sprite.image, self.pos)
+        
+        
+    def frameUpdate(self):
+        pass
+    
+    def Destroy(self):
+        game.Frame.destroyEntity(self)
+        
+class Traveler(Entity):
+    def __init__(self):
+        super().__init__()
+        self.setTexture("assets/sprites/traveler.png")
+        
+    def frameUpdate(self):
+        pass
+        
+
+game = Game()
+game.Frame = GameFrame()
+game.run()
